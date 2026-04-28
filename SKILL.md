@@ -104,11 +104,21 @@ Tasks:
 #### Presenting options to the user
 
 After completing the Re-Plan analysis, present improvement options via AskUserQuestion.
+
+**Interaction timeline** — emit Re-Plan in two parts so the user's choice can be incorporated:
+1. Output the *analysis portion* (refined root cause + the candidate options with Pros / Cons / Est. improvement). End the message there.
+2. Call `AskUserQuestion` with those same options.
+3. After the user responds, output the *final Re-Plan block* (with `User selection` filled in) and proceed to Phase 5.
+
+Do not pre-emit the complete Re-Plan output (including a guessed `User selection`) before the user has chosen — the field cannot be filled honestly without the response.
+
 Each option should include:
 - **label**: Option name (append "(Recommended)" to the recommended option)
 - **description**: Summary of pros, cons, and estimated improvement rate
 
 Recommendation criteria: Recommend the option with highest feasibility, lowest risk, and greatest improvement impact. Place the recommended option first in the options list.
+
+The example below shows 3 options. Minimum is 2; scale up to as many as the case genuinely warrants — the format scales linearly. Do not pad with weak filler options to "look thorough".
 
 AskUserQuestion example:
 ```
@@ -123,13 +133,15 @@ options:
     description: "Est. improvement: 60%↑ | Pros: Distributes DB load overall | Cons: Increased infra cost, takes time to build"
 ```
 
-After the user selects, build the action plan based on their choice. If the user enters a custom response via "Other", adjust the action plan accordingly.
+After the user selects, build the action plan based on their choice. If the user enters a custom response via "Other", treat the free text as their selection: record it as `User selection: Custom — <verbatim or summarized text>`, design the action plan around it (often a hybrid of multiple options), and proceed.
+
+Example: if the user replies "combine A's index with B's caching" via Other, record `User selection: Custom — A + B hybrid (index now, caching as follow-up)` and the action plan blends both.
 
 Output format (recorded after user selection):
 ```
 ## Re-Plan
 - Root cause (refined): [description]
-- Options:
+- Options: each line should mirror the AskUserQuestion `description`. Verbatim copy is preferred. If you summarize, the three elements `Est. improvement`, `Pros`, and `Cons` must each remain present — shorten the wording, but never drop one of the three.
   1. [Option A] (Recommended): Est. improvement [X%] / Pros / Cons
   2. [Option B]: Est. improvement [X%] / Pros / Cons
 - User selection: [Option X]
@@ -166,9 +178,9 @@ Output format:
 
 When the user says "run this with PDCPA" or "/pdcpa":
 1. Confirm the goal with the user, then create Phase 1 (Plan)
-2. Get user approval before proceeding to Phase 2 (Do)
+2. Get user approval before proceeding to Phase 2 (Do) — free-form natural-language confirmation is sufficient here ("looks good, go" / "tweak X first" etc). AskUserQuestion is reserved for Phase 4 (Re-Plan) where structured option comparison is needed
 3. Present each phase's output in the formats above
-4. In Phase 4 (Re-Plan), present options via AskUserQuestion and let the user choose
+4. In Phase 4 (Re-Plan), present options via AskUserQuestion and let the user choose, following the Interaction timeline above
 
 ### As a problem-solving framework
 
